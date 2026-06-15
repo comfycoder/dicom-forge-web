@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Electron + React renderer prototype for the DICOM Forge UI.",
+  "description": "React + Vite single-page UI for DICOM Forge.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
