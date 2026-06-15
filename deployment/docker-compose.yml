@@ -1,0 +1,65 @@
+name: dicom-forge
+
+# One-command stack: Postgres + API + UI.
+#   cd dicom-forge-web/deployment
+#   docker compose up -d --build
+# UI -> http://localhost:8080   API -> http://localhost:8472
+#
+# Build contexts and the .env are resolved relative to THIS folder:
+#   ../                     -> the UI app (dicom-forge-web)
+#   ../../dicom-forge-api   -> the API (sibling repo)
+# Uses the same container_names as the per-project composes (dicom-forge-db/api/ui),
+# so stop those first to avoid name/port clashes.
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: dicom-forge-db
+    environment:
+      POSTGRES_USER: forge
+      POSTGRES_PASSWORD: forge
+      POSTGRES_DB: forge
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forge -d forge"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build: ../../dicom-forge-api
+    image: dicom-forge-api:local
+    container_name: dicom-forge-api
+    ports:
+      - "8472:8472"
+    environment:
+      DICOMFORGE_ENVIRONMENT: Local Docker
+      DICOMFORGE_STORAGE_ROOT: /mnt/storage
+      DICOMFORGE_DATABASE_URL: postgresql+psycopg://forge:forge@db:5432/forge
+    volumes:
+      - ${DICOM_STORAGE:-./storage}:/mnt/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: ..
+      args:
+        # Browser runs on the host, so localhost:8472 reaches the published API port.
+        VITE_API_URL: http://localhost:8472
+    image: dicom-forge-ui:local
+    container_name: dicom-forge-ui
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:

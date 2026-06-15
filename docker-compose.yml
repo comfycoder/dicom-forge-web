@@ -1,0 +1,13 @@
+services:
+  ui:
+    build:
+      context: .
+      args:
+        # Bundled API URL. The browser runs on the host, so localhost:8472
+        # reaches the published API container port. Overridable in Settings.
+        VITE_API_URL: http://localhost:8472
+    image: dicom-forge-ui:local
+    container_name: dicom-forge-ui
+    ports:
+      - "8080:80"
+    restart: unless-stopped
